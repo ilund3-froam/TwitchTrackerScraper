@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TwitchTracker Scraper</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .input-wrapper {
+            flex: 1;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .separator {
+            color: #999;
+            font-weight: 600;
+        }
+
+        .info {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 12px 15px;
+            border-radius: 4px;
+            margin-bottom: 25px;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 15px;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .results-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .username-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 8px;
+        }
+
+        .username-item {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 TwitchTracker Scraper</h1>
+        <p class="subtitle">Extract Twitch usernames from the most-followed streamers list</p>
+
+        <div class="info">
+            💡 Each page contains 50 streamers. For example, to get streamers 1-150, enter range 1 to 150 (pages 1-3).
+        </div>
+
+        <form id="scrapeForm">
+            <div class="form-group">
+                <label for="start">Start Position:</label>
+                <div class="input-container">
+                    <div class="input-wrapper">
+                        <input type="number" id="start" name="start" value="1" min="1" required>
+                    </div>
+                    <span class="separator">to</span>
+                    <div class="input-wrapper">
+                        <input type="number" id="end" name="end" value="50" min="1" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="language">Language Filter (optional):</label>
+                <input type="text" id="language" name="language" placeholder="e.g., english, spanish, french (leave empty for all)">
+            </div>
+
+            <button type="button" id="scrapeBtn">Scrape Usernames</button>
+            <button type="button" id="downloadBtn" class="btn-secondary" disabled>Download CSV</button>
+        </form>
+
+        <div id="status" class="status"></div>
+
+        <div id="results" class="results">
+            <div class="results-title">Found <span id="count">0</span> usernames:</div>
+            <div id="usernameList" class="username-list"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentUsernames = [];
+        let currentStart = 1;
+        let currentEnd = 50;
+        let currentLanguage = null;
+
+        const startInput = document.getElementById('start');
+        const endInput = document.getElementById('end');
+        const languageInput = document.getElementById('language');
+        const scrapeBtn = document.getElementById('scrapeBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const statusDiv = document.getElementById('status');
+        const resultsDiv = document.getElementById('results');
+        const countSpan = document.getElementById('count');
+        const usernameListDiv = document.getElementById('usernameList');
+
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + type;
+        }
+
+        function hideStatus() {
+            statusDiv.className = 'status';
+            statusDiv.style.display = 'none';
+        }
+
+        function displayResults(usernames) {
+            currentUsernames = usernames;
+            countSpan.textContent = usernames.length;
+            usernameListDiv.innerHTML = '';
+            
+            usernames.forEach(username => {
+                const item = document.createElement('div');
+                item.className = 'username-item';
+                item.textContent = username;
+                usernameListDiv.appendChild(item);
+            });
+            
+            resultsDiv.classList.add('show');
+            downloadBtn.disabled = false;
+        }
+
+        scrapeBtn.addEventListener('click', async () => {
+            const start = parseInt(startInput.value);
+            const end = parseInt(endInput.value);
+            const language = languageInput.value.trim() || null;
+
+            if (start < 1 || end < start) {
+                showStatus('Invalid range! Start must be >= 1 and end must be >= start.', 'error');
+                return;
+            }
+
+            currentStart = start;
+            currentEnd = end;
+            currentLanguage = language;
+
+            scrapeBtn.disabled = true;
+            downloadBtn.disabled = true;
+            showStatus('Scraping... This may take a moment...', 'loading');
+            resultsDiv.classList.remove('show');
+
+            try {
+                const response = await fetch('/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ start, end, language }),
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus(`Successfully scraped ${data.count} usernames!`, 'success');
+                    displayResults(data.usernames);
+                } else {
+                    showStatus('Error: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            } finally {
+                scrapeBtn.disabled = false;
+            }
+        });
+
+        downloadBtn.addEventListener('click', async () => {
+            if (currentUsernames.length === 0) {
+                showStatus('No usernames to download. Please scrape first.', 'error');
+                return;
+            }
+
+            downloadBtn.disabled = true;
+            showStatus('Preparing download...', 'loading');
+
+            try {
+                const response = await fetch('/download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ start: currentStart, end: currentEnd, language: currentLanguage }),
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const langSuffix = currentLanguage ? `_${currentLanguage}` : '';
+                    a.download = `twitch_usernames_${currentStart}_${currentEnd}${langSuffix}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    showStatus('CSV downloaded successfully!', 'success');
+                } else {
+                    const data = await response.json();
+                    showStatus('Error: ' + (data.error || 'Download failed'), 'error');
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            } finally {
+                downloadBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
+
